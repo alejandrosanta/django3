@@ -164,6 +164,8 @@ urlpatterns = [
 `>>> from book_outlet.models import Book`
 `>>> harry_potter = Book.objects.all()[0]`
 `>>> harry_potter.delete()`
+* Eliminar todo
+`>>> Book.objects.all().delete()`
 
 ### 8. Querying y Filtrando Data
 `>>> Book.objects.get(rating=4)`
@@ -201,3 +203,72 @@ class BookAdmin(admin.ModelAdmin):
 
 admin.site.register(Book, BookAdmin)
 ```
+## Relationships
+### 1. Una a Muchos
+```python
+class Author(models.Model):
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+
+class Book(models.Model):
+    title = models.CharField(max_length=50)
+    rating = models.IntegerField(
+        validators=[MinValueValidator(1),MaxValueValidator(5)])
+    author = models.ForeignKey(Author, on_delete=models.CASCADE, null=True, related_name="libros")
+    is_bestselling = models.BooleanField(default=False)
+    slug = models.SlugField(default="", blank=True, null=False, db_index=True)
+```
+* Creando la relacion
+`$ python3 manage.py shell`
+`>>> from book_outlet.models import Book, Author`
+`>>> alejandro = Author(first_name="Alejandro", last_name="Santa Arciniegas")`
+`>>> alejandro.save()`
+`>>> ml= Book(title="My Life", rating= 5, is_bestselling=True, slug="my_life", author=alejandro)`
+`>>> ml.save()`
+
+* Filtrando
+`>>> ab = Book.objects.filter(author__first_name="Alejandro")`
+`>>> ab = Book.objects.filter(author__first_name__contains="Aleja")`
+
+* Obteniendo todos los libros de un autor
+`>>> ale = Author.objects.get(first_name="Alejandro")`
+`>>> ale.libros.all()`
+`>>> ale.libros.filter(rating__gt=3)`
+
+### 2. Una a una
+
+```python
+class Address(models.Model):
+    street  = models.CharField(max_length=80)
+    postal_code = models.CharField(max_length=5)
+    city = models.CharField(max_length=50)
+
+class Author(models.Model):
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    address = models.OneToOneField(Address, on_delete=models.CASCADE, null= True)
+```
+
+### 3. Muchos a muchos
+
+```python
+class Country(models.Model): 
+    name  = models.CharField(max_length=80)
+    code  = models.CharField(max_length=2)
+
+class Book(models.Model):
+    title = models.CharField(max_length=50)
+    rating = models.IntegerField(
+        validators=[MinValueValidator(1),MaxValueValidator(5)])
+    author = models.ForeignKey(Author, on_delete=models.CASCADE, null=True, related_name="libros")
+    is_bestselling = models.BooleanField(default=False)
+    slug = models.SlugField(default="", blank=True, null=False, db_index=True)
+    published_countries = models.ManyToManyField(Country, null=False, related_name="book_country")
+```
+`$ python3 manage.py shell`
+`>>> from book_outlet.models import Book, Country`
+`>>> germany = Country(name="Germany", code="DE")`
+`>>> germany.save()`
+`>>> ml.published_countries.add(germany)`
+`>>> germany.book_set.all()`
+`>>> germany.book_country.all()`
