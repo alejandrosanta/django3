@@ -1,3 +1,5 @@
+## Data y Modelos
+
 ### 1. Crear Modelo
 > app_name/models.py
 ```python
@@ -180,3 +182,22 @@ Cuando se utiliza get se debe utilizar condiciones que solo match un solo regist
 Cuando se utiliza filter puede encontrar varios registros
 
 Para mejorar el performance almacenar las consultas en una variable
+
+
+## Admin
+### 1. Crear super usuario
+`python3 manage.py createsuperuser`
+> http://127.0.0.1:8000/admin/
+
+### 2. Configurar las opciones de Administracion
+```python
+from django.contrib import admin
+from .models import Book
+
+class BookAdmin(admin.ModelAdmin):
+    prepopulated_fields = {"slug":("title",)}
+    list_filter = ("author", "rating",)
+    list_display = ("title", "author",)
+
+admin.site.register(Book, BookAdmin)
+```
