@@ -42,7 +42,40 @@ class Book(models.Model):
 `$ python3 manage.py migrate`
 
 ### 5. Ver Data
+* Add slug and overwrite save
+> app_name/models.py
+```python
+from django.core import validators
+from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.urls import reverse
+from django.utils.text import slugify
+
+class Book(models.Model):
+    title = models.CharField(max_length=50)
+    rating = models.IntegerField(
+        validators=[MinValueValidator(1),MaxValueValidator(5)])
+    author = models.CharField(null=True, max_length=100)
+    is_bestselling = models.BooleanField(default=False)
+    slug = models.SlugField(default="", null=False, db_index=True)
+
+    def get_absolute_url(self):
+        return reverse("book-detail", args=[self.id])
+
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.title)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.title} ({self.rating})"
+```
 `$ python3 manage.py shell`
+`>>> from book_outlet.models import Book`
+`>>> Book.objects.get(title="Lord of the Rings").slug`
+`>>> Book.objects.get(title="Lord of the Rings").save()`
+`$ python3 manage.py shell`
+
+* Ver Data
 `>>> from book_outlet.models import Book`
 `>>> Book.objects.all()`
 > app_name/templates/app_name/index.html
@@ -62,7 +95,8 @@ class Book(models.Model):
 ```
 > app_name/views.py
 ```python
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
+from django.http import Http404
 
 from .models import Book
 
@@ -72,8 +106,12 @@ def index(request):
         "books": books
     })
 
-def book_detail(request, id):
-    book = get_object_or_404(Book, pk=id)
+def book_detail(request, slug):
+    # try:
+    #     book = Book.objects.get(pk=id)
+    # except:
+    #     raise Http404()
+    book = get_object_or_404(Book, slug=slug)
     return render(request, "book_outlet/book_detail.html", {
         "title":book.title,
         "author":book.author,
@@ -88,7 +126,7 @@ from . import views
 
 urlpatterns = [
     path("", views.index),
-    path("<int:id>", views.book_detail, name="book-detail")
+    path("<slug:slug>", views.book_detail, name="book-detail")
 ]
 ```
 > app_name/templates/app_name/book_detail.html
@@ -142,5 +180,3 @@ Cuando se utiliza get se debe utilizar condiciones que solo match un solo regist
 Cuando se utiliza filter puede encontrar varios registros
 
 Para mejorar el performance almacenar las consultas en una variable
-
-
